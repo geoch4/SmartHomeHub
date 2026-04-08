@@ -16,17 +16,23 @@ var lamp = new Lamp("Vardagsrumslampa");
 var thermostat = new Thermostat("Termostat");
 var door = new DoorLock("Ytterdörr");
 
-// Skapa observers
+// Skapa observers - nu 3 st med olika ansvar!
 var dashboard = new Dashboard();
 var eventLogger = new EventLogger();
+var audit = new AuditLog();
 
-// Lägg till observers på enheterna
+// Lägg till observers på alla enheter
 lamp.AddObserver(dashboard);
 lamp.AddObserver(eventLogger);
+lamp.AddObserver(audit);
+
 thermostat.AddObserver(dashboard);
 thermostat.AddObserver(eventLogger);
+thermostat.AddObserver(audit);
+
 door.AddObserver(dashboard);
 door.AddObserver(eventLogger);
+door.AddObserver(audit);
 
 // Skapa Facade
 var hub = new SmartHomeFacade();
@@ -34,7 +40,7 @@ hub.AddDevice(lamp);
 hub.AddDevice(thermostat);
 hub.AddDevice(door);
 
-// Strategy - testa olika lägen
+// Strategy påverkar morgonrutin
 Console.WriteLine("--- Testar NormalMode ---");
 hub.SetMode(new NormalMode());
 hub.MorningRoutine(lamp, thermostat, door);
@@ -47,8 +53,17 @@ Console.WriteLine("--- Testar PartyMode ---");
 hub.SetMode(new PartyMode());
 hub.MorningRoutine(lamp, thermostat, door);
 
-//// ✅ Singleton – "Samma logger? True"
-//✅ Observer – Dashboard och Logger reagerar
-//✅ Command – kommandon körs via Facade
-//✅ Strategy – olika lägen ger olika beteende
-//✅ Facade – allt styrs via hub
+// Strategy påverkar även enskilda kommandon
+Console.WriteLine("--- Strategy påverkar RunCommand ---");
+hub.SetMode(new EcoMode());
+bool allowed = hub.RunCommandIfAllowed(new TurnOnCommand(lamp));
+if (!allowed)
+{
+	Console.WriteLine("EcoMode blockerade kommandot!");
+}
+
+hub.SetMode(new NormalMode());
+hub.RunCommand(new TurnOnCommand(lamp));
+
+// Visa audit historik
+audit.ShowHistory();

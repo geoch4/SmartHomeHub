@@ -31,6 +31,18 @@ namespace SmartHomeHub.Core
 			command.Execute();
 		}
 
+		public bool RunCommandIfAllowed(ICommand command)
+		{
+			if (!_mode.CanTurnOnAllLights())
+			{
+				_logger.Log($"Kommando blockerat av {_mode.ModeName}");
+				return false;
+			}
+			_invoker.AddCommand(command);
+			command.Execute();
+			return true;
+		}
+
 		public void MorningRoutine(Lamp lamp, Thermostat thermostat, DoorLock door)
 		{
 			Console.WriteLine("\n--- Morgonrutin startar ---");
