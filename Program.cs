@@ -3,25 +3,35 @@ using SmartHomeHub.Observers;
 using SmartHomeHub.Commands;
 using SmartHomeHub.Strategies;
 using SmartHomeHub.Core;
+using SmartHomeHub.Factories;
 
 Console.WriteLine("=== Smart Home Hub ===\n");
 
-// Singleton - samma logger används överallt
+// =======================
+// Singleton test
+// =======================
 var logger1 = AppLogger.Instance;
 var logger2 = AppLogger.Instance;
+
 Console.WriteLine($"Samma logger? {object.ReferenceEquals(logger1, logger2)}\n");
 
-// Skapa enheter
-var lamp = new Lamp("Vardagsrumslampa");
-var thermostat = new Thermostat("Termostat");
-var door = new DoorLock("Ytterdörr");
+// =======================
+// Factory - skapa enheter
+// =======================
+var factory = new DeviceFactory();
 
-// Skapa observers - nu 3 st med olika ansvar!
+var lamp = factory.CreateDevice("lamp", "Vardagsrumslampa");
+var thermostat = factory.CreateDevice("thermostat", "Termostat") as Thermostat;
+var door = factory.CreateDevice("door", "Ytterdörr") as DoorLock;
+
+// =======================
+// Observers
+// =======================
 var dashboard = new Dashboard();
 var eventLogger = new EventLogger();
 var audit = new AuditLog();
 
-// Lägg till observers på alla enheter
+// Lägg till observers
 lamp.AddObserver(dashboard);
 lamp.AddObserver(eventLogger);
 lamp.AddObserver(audit);
@@ -34,29 +44,38 @@ door.AddObserver(dashboard);
 door.AddObserver(eventLogger);
 door.AddObserver(audit);
 
-// Skapa Facade
+// =======================
+// Facade
+// =======================
 var hub = new SmartHomeFacade();
+
 hub.AddDevice(lamp);
 hub.AddDevice(thermostat);
 hub.AddDevice(door);
 
-// Strategy påverkar morgonrutin
+// =======================
+// Strategy + Facade
+// =======================
 Console.WriteLine("--- Testar NormalMode ---");
 hub.SetMode(new NormalMode());
-hub.MorningRoutine(lamp, thermostat, door);
+hub.MorningRoutine(lamp as Lamp, thermostat, door);
 
 Console.WriteLine("--- Testar EcoMode ---");
 hub.SetMode(new EcoMode());
-hub.MorningRoutine(lamp, thermostat, door);
+hub.MorningRoutine(lamp as Lamp, thermostat, door);
 
 Console.WriteLine("--- Testar PartyMode ---");
 hub.SetMode(new PartyMode());
-hub.MorningRoutine(lamp, thermostat, door);
+hub.MorningRoutine(lamp as Lamp, thermostat, door);
 
-// Strategy påverkar även enskilda kommandon
+// =======================
+// Command via Facade
+// =======================
 Console.WriteLine("--- Strategy påverkar RunCommand ---");
+
 hub.SetMode(new EcoMode());
 bool allowed = hub.RunCommandIfAllowed(new TurnOnCommand(lamp));
+
 if (!allowed)
 {
 	Console.WriteLine("EcoMode blockerade kommandot!");
@@ -65,5 +84,7 @@ if (!allowed)
 hub.SetMode(new NormalMode());
 hub.RunCommand(new TurnOnCommand(lamp));
 
-// Visa audit historik
+// =======================
+// Visa Audit historik
+// =======================
 audit.ShowHistory();
